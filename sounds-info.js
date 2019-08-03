@@ -1,3 +1,4 @@
+//TODO store this somewhere outside repo
 var SOUNDS_INFO = [
   {
     filename: "Footage of The Troubles in Ireland.mp3",

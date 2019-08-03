@@ -14,7 +14,6 @@ var soundsLoaded;
 var sound1, marker1;
 
 var PATH_TO_SOUNDS = "sounds/";
-//SOUNDS_INFO
 
 //Functions
 var updateSounds;
