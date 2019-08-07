@@ -146,9 +146,6 @@ function initMap() {
   //    //          map.setCenter(event.latLng);
   //
   //  });
-
-//  addSoundsToMap();
-//  console.log("ready");
 }
 
 function keyDownHandler(e) {

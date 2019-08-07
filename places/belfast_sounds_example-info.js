@@ -16,7 +16,7 @@ var soundsInfoFromFile = {
         "lat": 54.601096,
         "lng": -5.956825
       },
-      "descrip": "black taxi tour group"
+      "descrip": "Black Taxi tour group."
     },
     {
       "filename": "vlog_peaceWalls.wav",
