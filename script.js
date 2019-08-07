@@ -6,14 +6,19 @@ var BOUNDS = {
   east: -175.81,
 };
 var CENTER = {lat: -37.06, lng: 174.58};
-var MARKERS = [];
+var SOUND_MARKERS = [];
+var MAP_MARKERS = [];
 var SOUND_HOWLS = [];
 var NUM_SOUNDS = 0;
 var soundsLoaded;
 
+var SOUNDS_INFO;
+
 var sound1, marker1;
 
-var PATH_TO_SOUNDS = "sounds/";
+var PATH_TO_SOUNDS = "sounds2/";
+
+var initial = true;
 
 //Functions
 var updateSounds;
@@ -27,78 +32,12 @@ var keyDown = [false,false,false,false,false,false];
 var panAmt = 15;
 var fps = 60;
 
-
-function animateMap(){
-  setTimeout(function(){
-    //    console.log(move, keyDown);
-//    map.setZoom(zoom);
-    if (move[0] != 0 || move[1] != 0)
-      map.panBy(move[0], move[1]);
-    requestAnimationFrame(animateMap);  
-  }, 1000 / fps)
-
-}
-
 $(function(){
   //  window.requestAnimationFrame(function(){map.panBy(move[0],move[1]);});
 
-  $(document).bind("keydown",function(e){
-    e.preventDefault();
-    //  alert(e.keyCode);
-    var kc = e.keyCode;
-    //  console.log(kc, keyCodes.up);
-    if (kc == keyCodes[0]){ //up
-      move[1] = -panAmt;
-      keyDown[0] = true;
-    }
-    if (kc == keyCodes[1]){ //down
-      move[1] = panAmt;
-      keyDown[1] = true;
-    }
-    if (kc == keyCodes[2]){ //left
-      move[0] = -panAmt;
-      keyDown[2] = true;
-    }
-    if (kc == keyCodes[3]){ //right
-      move[0] = panAmt;
-      keyDown[3] = true;
-    }
+  $(document).bind("keydown", keyDownHandler);
 
-    if (kc == keyCodes[4]){
-      map.setZoom(map.getZoom() + 1);
-//      zoom += 1;
-    }
-    else if (kc == keyCodes[5]){
-      map.setZoom(map.getZoom() - 1);
-//      zoom -= 1;
-    }
-    //    map.panBy(0,-panAmt);
-
-    //    console.log("keydown, move",move);
-  })
-
-  $(document).bind("keyup",function(e){
-    e.preventDefault();
-    //  alert(e.keyCode);
-    var kc = e.keyCode;
-
-    if (kc == keyCodes[0]){ //up
-      move[1] = keyDown[1] ? panAmt : 0;
-      keyDown[0] = false;
-    }
-    if (kc == keyCodes[1]){ //down
-      move[1] = keyDown[0] ? -panAmt : 0;
-      keyDown[1] = false;
-    }
-    if (kc == keyCodes[2]){ //left
-      move[0] = keyDown[3] ? panAmt : 0;
-      keyDown[2] = false;
-    }
-    if (kc == keyCodes[3]){ //right
-      move[0] = keyDown[2] ? -panAmt : 0;
-      keyDown[3] = false;
-    }
-  });
+  $(document).bind("keyup", keyUpHandler);
 
   window.setInterval(function(){
     //    console.log(move);
@@ -112,7 +51,44 @@ $(function(){
 
 });
 
+function initSoundsInfo(){
+  SOUNDS_INFO = soundsInfoFromFile["sounds"];
+
+  var center = soundsInfoFromFile["center"];
+  CENTER = {
+    lat: parseFloat(center.lat),
+    lng: parseFloat(center.lng)
+  }
+
+  var bounds = soundsInfoFromFile["bounds"];
+  Object.keys(bounds).map(function(key, index) {
+    bounds[key] = parseFloat(bounds[key]);
+  });
+  BOUNDS = bounds
+
+
+
+  console.log("sounds info",SOUNDS_INFO);
+  console.log("center",CENTER);
+  console.log("bounds", BOUNDS);
+}
+
+function animateMap(){
+  setTimeout(function(){
+    //    console.log(move, keyDown);
+    //    map.setZoom(zoom);
+    if (move[0] != 0 || move[1] != 0)
+      map.panBy(move[0], move[1]);
+    requestAnimationFrame(animateMap);  
+  }, 1000 / fps)
+}
+
+
+
 function initMap() {
+
+  initSoundsInfo();
+
   map = new google.maps.Map(document.getElementById('map'), {
     center: CENTER,
     restriction:{
@@ -120,15 +96,19 @@ function initMap() {
       strictBounds: false,
     },
     zoom: 8,
-    disableDefaultUI: true
+    disableDefaultUI: false
   });
-  
-//  zoom = map.getZoom();
+
+  //  zoom = map.getZoom();
 
   initSoundMarkers();
-  for (var i=0; i < MARKERS.length; i++){
-    new google.maps.Marker(MARKERS[i]);
+
+  for (var i=0; i < SOUND_MARKERS.length; i++){
+    MAP_MARKERS.push(new google.maps.Marker(SOUND_MARKERS[i]));
+    console.log("new marker made");
   }
+  
+  console.log("map markers", MAP_MARKERS)
 
   //    initSounds(); 
 
@@ -145,21 +125,21 @@ function initMap() {
   //  sound1.on('play', function(id) {console.log('played:', id);});   
   //  sound1.on('end', function(id) { console.log('ended:', id);});   
 
-  google.maps.event.addListenerOnce(map, 'idle', function () {
-    // map is ready
-    setTimeout(function() {
-      //      console.assert(NUM_SOUNDS == SOUND_HOWLS.length && NUM_SOUNDS == MARKERS.length);
-      while(NUM_SOUNDS != SOUND_HOWLS.length){}
-
-      google.maps.event.addListener(map, 'bounds_changed', function() {
-        var bounds =  map.getBounds();
-        var ne = bounds.getNorthEast();
-        var sw = bounds.getSouthWest();
-        updateSounds(bounds);
-      });
-
-    }, 2000);
-  });
+    google.maps.event.addListenerOnce(map, 'idle', function () {
+      // map is ready
+      setTimeout(function() {
+        //      console.assert(NUM_SOUNDS == SOUND_HOWLS.length && NUM_SOUNDS == MARKERS.length);
+//        while(NUM_SOUNDS != SOUND_HOWLS.length){}
+  
+        google.maps.event.addListener(map, 'bounds_changed', function() {
+          var bounds =  map.getBounds();
+          var ne = bounds.getNorthEast();
+          var sw = bounds.getSouthWest();
+          updateSounds(bounds);
+        });
+  
+      }, 2000);
+    });
 
   //  google.maps.event.addListener(map, 'mousemove', function (event) {
   //    //    displayCoordinates(event.latLng);
@@ -167,14 +147,82 @@ function initMap() {
   //
   //  });
 
+//  addSoundsToMap();
+//  console.log("ready");
 }
 
+function keyDownHandler(e) {
+  e.preventDefault();
+  //  alert(e.keyCode);
+  var kc = e.keyCode;
 
+//    if (kc == 32) addSoundsToMap();
+
+  //  console.log(kc, keyCodes.up);
+  if (kc == keyCodes[0]){ //up
+    move[1] = -panAmt;
+    keyDown[0] = true;
+  }
+  if (kc == keyCodes[1]){ //down
+    move[1] = panAmt;
+    keyDown[1] = true;
+  }
+  if (kc == keyCodes[2]){ //left
+    move[0] = -panAmt;
+    keyDown[2] = true;
+  }
+  if (kc == keyCodes[3]){ //right
+    move[0] = panAmt;
+    keyDown[3] = true;
+  }
+
+  if (kc == keyCodes[4]){
+    map.setZoom(map.getZoom() + 1);
+    //      zoom += 1;
+  }
+  else if (kc == keyCodes[5]){
+    map.setZoom(map.getZoom() - 1);
+    //      zoom -= 1;
+  }
+  //    map.panBy(0,-panAmt);
+
+  //    console.log("keydown, move",move);
+}
+
+function keyUpHandler(e){
+  e.preventDefault();
+  //  alert(e.keyCode);
+  var kc = e.keyCode;
+
+  if (kc == keyCodes[0]){ //up
+    move[1] = keyDown[1] ? panAmt : 0;
+    keyDown[0] = false;
+  }
+  if (kc == keyCodes[1]){ //down
+    move[1] = keyDown[0] ? -panAmt : 0;
+    keyDown[1] = false;
+  }
+  if (kc == keyCodes[2]){ //left
+    move[0] = keyDown[3] ? panAmt : 0;
+    keyDown[2] = false;
+  }
+  if (kc == keyCodes[3]){ //right
+    move[0] = keyDown[2] ? -panAmt : 0;
+    keyDown[3] = false;
+  }
+}
 
 function initSoundMarkers(){
   for (var i=0; i< SOUNDS_INFO.length; i++){
     var s = SOUNDS_INFO[i];
-    console.log(s.filename);
+
+    if (!s.filename){
+      console.log("bad", s.filename);
+      s.filename = "Adventure_Time_Ending_Theme.mp3";
+      //      return;
+    }
+    else
+      console.log("good", s.filename)
     //    createSoundMarker(s.filename, s.pos, s.descrip);
     var m = {
       position: s.pos,
@@ -196,26 +244,31 @@ function initSoundMarkers(){
     h.on('play', function(id) {
       console.log('played:', id);
     });   
-    h.on('end', function(id) {
-      console.log('ended:', id);
+    h.on('pause', function(id) {
+      console.log('pause:', id);
     });             
 
     SOUND_HOWLS.push(h);
-    MARKERS.push(m);
+    SOUND_MARKERS.push(m);
   }
+
+  console.log("sound howls", SOUND_HOWLS);
+  console.log("markers", SOUND_MARKERS)
 }
 
 function updateSounds(bounds){
+//  console.log("update")
+//  if (!initial) return;
   //  console.log(MARKERS[0])
-  for (var i=0; i < MARKERS.length; i++){
-    var pos = MARKERS[i].position;
+  for (var i=0; i < SOUND_MARKERS.length; i++){
+    var pos = SOUND_MARKERS[i].position;
     var ne = bounds.ga;
     var sw = bounds.na;
-    MARKERS[i].play = (ne.j < pos.lng) && (pos.lng < ne.l) && (sw.j < pos.lat) && (pos.lat < sw.l);
+    SOUND_MARKERS[i].play = (ne.j < pos.lng) && (pos.lng < ne.l) && (sw.j < pos.lat) && (pos.lat < sw.l);
   }
 
-  for (var i=0; i < MARKERS.length; i++){
-    var m = MARKERS[i];
+  for (var i=0; i < SOUND_MARKERS.length; i++){
+    var m = SOUND_MARKERS[i];
     var s = SOUND_HOWLS[i]
     if (m.play && !s.playing()){
       //      console.log("play")
@@ -226,6 +279,11 @@ function updateSounds(bounds){
       //    sound1.mute(true);
       s.pause();
     }
+  }
+
+  if (initial){
+    console.log("initially ready");
+    initial = false;
   }
 }
 
