@@ -1,15 +1,56 @@
 /* Always set the map height explicitly to define the size of the div
- * element that contains the map. */
+* element that contains the map. */
 #map {
+  /*  box-shadow: 0px 0px 35px 60px #ffffff;*/
+  pointer-events: auto;
+  margin: 0px;
   height: 100%;
+  z-index: 1;
+  height: 600px;
+  width: 600px;
 }
 /* Optional: Makes the sample page fill the window. */
 html, body {
-/*  height: 600px;*/
-/*  width: 600px;*/
-  height:100%;
-  width:100%;
+
+  /*  height:100%;*/
+  /*  width:100%;*/
   margin: 0;
   padding: 0;
   font-family: monospace;
+}
+
+#viewframe-svg{
+  position: absolute;
+  /*  height:100%;*/
+  /*  width:100%;*/
+  top: 0px;
+  left: 0px;
+  /*  right:0px;*/
+  /*  bottom: 0px;*/
+  z-index:99;
+  pointer-events: none;
+}
+
+svg {
+  /*  position: absolute;*/
+  /*  top: 0px;*/
+  /*  left:0px;*/
+  /*  width: 100vw; */
+  /*  height: 100vh;*/
+  width: 600px;
+  height: 600px;
+  /*  overflow: auto;*/
+  /*  z-index:99;*/
+}
+
+#faded-border{
+  pointer-events: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background-image: -webkit-radial-gradient(closest-side, transparent 85%, rgba(255,255,255,0.4) 92%, rgba(255,255,255,0.7) 95%, white);
+  width: 600px;
+  height: 600px;
+  /*  box-shadow: 0px 0px 35px 60px #ffffff;*/
+  z-index:99;
 }
