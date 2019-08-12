@@ -1,6 +1,6 @@
 // config.js
 var API_KEY = "AIzaSyAxCvGaKe4Z_q3zWNy-GA10JVizY7zCeH0";
-var soundsInfoUrl = "../places/belfast_sounds_example-info.json";
+var soundsInfoUrl = "./places/belfast_sounds_example-info.json";
 
 var js_file = document.createElement('script');
 js_file.type = 'text/javascript';
