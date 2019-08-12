@@ -43,7 +43,7 @@ var masterVol = 0.25;
 
 // get json w sounds info
 var soundsInfoFromFile;
-var url = "../places/belfast_sounds_example-info.json";
+var url = soundsInfoUrl;
 var promise = $.getJSON(url);
 
 // on document load
