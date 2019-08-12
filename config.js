@@ -7,4 +7,4 @@ js_file.type = 'text/javascript';
 js_file.src = 'https://maps.googleapis.com/maps/api/js?callback=initMap&key=' + API_KEY;
 js_file.async = 'sync';
 js_file.defer = 'defer';
-(document.getElementsByTagName('head'))[0].appendChild(js_file);
+document.getElementsByTagName('body')[0].appendChild(js_file);
