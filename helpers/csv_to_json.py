@@ -49,7 +49,8 @@ def process():
 
                 info.append({"filename":fname, 
                     "pos":{"lat":lat,"lng":lng}, 
-                    "descrip":descrip
+                    "descrip":descrip,
+                    "place":place,
                     })
             n += 1
 

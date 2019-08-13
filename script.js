@@ -179,7 +179,7 @@ function initSoundMarkers(){
     };
 
     // info window info
-    var contentString = s.descrip;
+    var contentString = s.descrip + " (" + s.place + ")";
     var iw = new google.maps.InfoWindow({
       content: contentString
     })
@@ -262,16 +262,24 @@ function animateMap(){
 }
 
 function markerIdxInFocus(c){
+  var proj = map.getProjection();
   var lat = c.lat();
   var lng = c.lng();
-  var pad = 0.0005;
+  var pad = 0.0003; //px
+  var pt = proj.fromLatLngToPoint(c);
+  console.log(pt);
   //  var focusBounds = {n: lat+pad, s: lat-pad , e:lng+pad, w:lng-pad};
-  var focusBounds = new google.maps.LatLngBounds({lat: lat-pad, lng: lng-pad}, {lat:lat+pad, lng:lng+pad});
-  console.log("focus bounds", focusBounds);
+  var bounds = new google.maps.LatLngBounds({lat: lat-pad, lng: lng-pad}, {lat:lat+pad, lng:lng+pad});
+//  var bounds = {x1: pt.x-pad, x2: pt.x+pad, y1: pt.y-pad, y2: pt.y+pad};
+  console.log("focus bounds", bounds);
 
   for (var i=0; i < SOUND_MARKERS.length; i++){
-    var pos = SOUND_MARKERS[i].position;
-    if(focusBounds.contains(pos)){
+    if (!SOUND_MARKERS[i].inView) continue;
+//    var pos = SOUND_MARKERS[i].position;
+    var pos = MAP_MARKERS[i].position;
+//    var spt = proj.fromLatLngToPoint(pos);
+    if(bounds.contains(pos)){
+//    if (bounds.x1 < spt.x && spt.x < bounds.x2 && bounds.y1 < spt.y && spt.y < bounds.y2){
       console.log("found m", SOUND_MARKERS[i])
       //      return SOUND_MARKERS[i];
       return i;
@@ -369,3 +377,20 @@ function distFromCenter(center, pos){
     lng = lng.toFixed(4);
     console.log("Latitude: " + lat + "  Longitude: " + lng);
   }
+
+
+function latLng2Point(latLng, map) {
+  var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+  var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+  var scale = Math.pow(2, map.getZoom());
+  var worldPoint = map.getProjection().fromLatLngToPoint(latLng);
+  return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+}
+
+function point2LatLng(point, map) {
+  var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+  var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+  var scale = Math.pow(2, map.getZoom());
+  var worldPoint = new google.maps.Point(point.x / scale + bottomLeft.x, point.y / scale + topRight.y);
+  return map.getProjection().fromPointToLatLng(worldPoint);
+}
