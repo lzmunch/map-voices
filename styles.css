@@ -8,15 +8,15 @@
   z-index: 1;
   height: 600px;
   width: 600px;
+  display: none;
 }
 /* Optional: Makes the sample page fill the window. */
-html, body {
-
+body {
   /*  height:100%;*/
   /*  width:100%;*/
   width:600px;
-  margin: 0;
   padding: 0;
+  margin: 0;
   font-family: monospace;
 }
 
@@ -31,6 +31,14 @@ html, body {
   z-index:99;
   pointer-events: none;
 }
+
+#start-screen{
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index:99;
+}
+
 
 svg {
   /*  position: absolute;*/
@@ -57,6 +65,10 @@ svg {
 }
 
 #instructions{
+  position: absolute;
+  display: block;
+  width: 600px;
+  top: 600px;
   margin-left: 10px;
   margin-right: 10px;
 }

@@ -6,6 +6,7 @@
 // description pops up when marker in focus
 // zoom?
 // blur the edges, fishhole?
+// im guessing sound aren't all loaded before their markers are placed
 
 var BOUNDS = {
   north: -34.36,
@@ -109,23 +110,22 @@ function initMap() {
         icon: icon
       });
       MAP_MARKERS.push(mark);
-      console.log("new marker", mark);
+      //      console.log("new marker", mark);
     }
+    hideMarkers(map);
     console.log("map markers", MAP_MARKERS)
 
     // add update function
     google.maps.event.addListenerOnce(map, 'idle', function () {
       // map is ready
-      setTimeout(function() {
-
+//      setTimeout(function() {
         google.maps.event.addListener(map, 'bounds_changed', function() {
           var bounds =  map.getBounds();
           var ne = bounds.getNorthEast();
           var sw = bounds.getSouthWest();
           updateSounds(bounds);
         });
-
-      }, 2000);
+//      }, 2000);
     });
 
     // check for marker in focus when user stops moving
@@ -136,6 +136,24 @@ function initMap() {
     });
   });
 }
+
+// Sets the map on all markers in the array.
+function setMapOnAll(map) {
+  for (var i = 0; i < MAP_MARKERS.length; i++) {
+    MAP_MARKERS[i].setMap(map);
+  }
+}
+
+// Removes the markers from the map, but keeps them in the array.
+function hideMarkers() {
+  setMapOnAll(null);
+}
+
+// Shows any markers currently in the array.
+function showMarkers() {
+  setMapOnAll(map);
+}
+
 
 function initSoundsInfoFromFile(){
   SOUNDS_INFO = soundsInfoFromFile["sounds"];
@@ -164,11 +182,9 @@ function initSoundMarkers(){
     if (!s.filename){
       console.log("bad", s.filename);
       s.filename = "Adventure_Time_Ending_Theme.mp3";
-      //      return;
     }
     else
       console.log("good", s.filename)
-    //    createSoundMarker(s.filename, s.pos, s.descrip);
 
     // map marker info
     //var m = new google.maps.Marker({})
@@ -176,6 +192,7 @@ function initSoundMarkers(){
       position: s.pos,
       title: s.descrip,
       inView: false,
+      unplayed: true,
     };
 
     // info window info
@@ -188,25 +205,27 @@ function initSoundMarkers(){
     var h = new Howl({
       src: [PATH_TO_SOUNDS + s.filename],
       html5: true,
-      autoplay: false,
+      autoplay: true,
+      loop: true,
       pool: 1,
       volume: masterVol,
-    });
+    });        
+
+    SOUND_HOWLS.push(h);
+    SOUND_MARKERS.push(m);
+    INFO_WINDOWS.push(iw);
 
     h.on('load', function(id) {
       console.log('loaded:', id);
-      NUM_SOUNDS += 1;
+      //      console.log(SOUND_HOWLS.map(x=>x._getSoundIds()[0]));
+      showMarkers(map);
     });   
     h.on('play', function(id) {
       console.log('played:', id);
     });   
     h.on('pause', function(id) {
       console.log('pause:', id);
-    });             
-
-    SOUND_HOWLS.push(h);
-    SOUND_MARKERS.push(m);
-    INFO_WINDOWS.push(iw);
+    });     
   }
 
   console.log("sound howls", SOUND_HOWLS);
@@ -235,8 +254,12 @@ function updateSounds(bounds){
       //      console.log("play")
       var d = distFromCenter(center, m.position);
       console.log("dist", d);
-//      s.volume(d*masterVol);
-      s.play();
+      //      s.volume(d*masterVol);
+      var id = s.play();
+      if (m.unplayed){
+        s.seek(Math.floor(Math.random() * 10), id);
+        m.unplayed = false;
+      }
     }
     else if (!m.inView && s.playing()){
       //      console.log("stop")
@@ -262,26 +285,20 @@ function animateMap(){
 }
 
 function markerIdxInFocus(c){
-  var proj = map.getProjection();
-  var lat = c.lat();
-  var lng = c.lng();
-  var pad = 0.0003; //px
-  var pt = proj.fromLatLngToPoint(c);
-  console.log(pt);
-  //  var focusBounds = {n: lat+pad, s: lat-pad , e:lng+pad, w:lng-pad};
-  var bounds = new google.maps.LatLngBounds({lat: lat-pad, lng: lng-pad}, {lat:lat+pad, lng:lng+pad});
-//  var bounds = {x1: pt.x-pad, x2: pt.x+pad, y1: pt.y-pad, y2: pt.y+pad};
-  console.log("focus bounds", bounds);
+  var pxPad = 15; //px
+  var cpt = fromLatLngToPoint2(c, map);
+
+  var inBounds = function(pos){
+    var pt = fromLatLngToPoint2(pos, map);
+    console.log(Math.abs(pt.x - cpt.x), Math.abs(pt.y - cpt.y))
+    return (Math.abs(pt.x - cpt.x) < pxPad) && (Math.abs(pt.y - cpt.y) < pxPad)
+  }
 
   for (var i=0; i < SOUND_MARKERS.length; i++){
     if (!SOUND_MARKERS[i].inView) continue;
-//    var pos = SOUND_MARKERS[i].position;
     var pos = MAP_MARKERS[i].position;
-//    var spt = proj.fromLatLngToPoint(pos);
-    if(bounds.contains(pos)){
-//    if (bounds.x1 < spt.x && spt.x < bounds.x2 && bounds.y1 < spt.y && spt.y < bounds.y2){
+    if (inBounds(pos)){
       console.log("found m", SOUND_MARKERS[i])
-      //      return SOUND_MARKERS[i];
       return i;
     }
     else{
@@ -302,81 +319,88 @@ function distFromCenter(center, pos){
   return d / dToEdge;
 }
 
-  function displayDescrip(){
-    var c = map.getCenter();
-    var i = markerIdxInFocus(c);
-    if (i>=0){
-      console.log("in focus", SOUND_MARKERS[i], "volume=", SOUND_HOWLS[i].volume());
-      INFO_WINDOWS[i].open(map, MAP_MARKERS[i]);
-    } 
+function displayDescrip(){
+  var c = map.getCenter();
+  var i = markerIdxInFocus(c);
+  if (i>=0){
+    console.log("in focus", SOUND_MARKERS[i], "volume=", SOUND_HOWLS[i].volume());
+    INFO_WINDOWS[i].open(map, MAP_MARKERS[i]);
+  } 
+}
+
+function fromLatLngToPoint2(latLng, map) {	
+  var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());	
+  var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());	
+  var scale = Math.pow(2, map.getZoom());	
+  var worldPoint = map.getProjection().fromLatLngToPoint(latLng);	
+  return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);}
+
+function keyDownHandler(e) {
+  //  e.preventDefault();
+  var kc = e.keyCode;
+
+  //  console.log(kc, keyCodes.up);
+  if (kc == keyCodes[0]){ //up
+    move[1] = -panAmt;
+    keyDown[0] = true;
+  }
+  if (kc == keyCodes[1]){ //down
+    move[1] = panAmt;
+    keyDown[1] = true;
+  }
+  if (kc == keyCodes[2]){ //left
+    move[0] = -panAmt;
+    keyDown[2] = true;
+  }
+  if (kc == keyCodes[3]){ //right
+    move[0] = panAmt;
+    keyDown[3] = true;
   }
 
-  function keyDownHandler(e) {
-    //  e.preventDefault();
-    var kc = e.keyCode;
-
-    //  console.log(kc, keyCodes.up);
-    if (kc == keyCodes[0]){ //up
-      move[1] = -panAmt;
-      keyDown[0] = true;
-    }
-    if (kc == keyCodes[1]){ //down
-      move[1] = panAmt;
-      keyDown[1] = true;
-    }
-    if (kc == keyCodes[2]){ //left
-      move[0] = -panAmt;
-      keyDown[2] = true;
-    }
-    if (kc == keyCodes[3]){ //right
-      move[0] = panAmt;
-      keyDown[3] = true;
-    }
-
-    if (kc == keyCodes[4]){
-      map.setZoom(map.getZoom() + 1);
-      //      zoom += 1;
-    }
-    else if (kc == keyCodes[5]){
-      map.setZoom(map.getZoom() - 1);
-      //      zoom -= 1;
-    }
-    //    map.panBy(0,-panAmt);
-
-    //    console.log("keydown, move",move);
+  if (kc == keyCodes[4]){
+    map.setZoom(map.getZoom() + 1);
+    //      zoom += 1;
   }
-
-  function keyUpHandler(e){
-    //  e.preventDefault();
-    //  alert(e.keyCode);
-    var kc = e.keyCode;
-
-    if (kc == keyCodes[0]){ //up
-      move[1] = keyDown[1] ? panAmt : 0;
-      keyDown[0] = false;
-    }
-    if (kc == keyCodes[1]){ //down
-      move[1] = keyDown[0] ? -panAmt : 0;
-      keyDown[1] = false;
-    }
-    if (kc == keyCodes[2]){ //left
-      move[0] = keyDown[3] ? panAmt : 0;
-      keyDown[2] = false;
-    }
-    if (kc == keyCodes[3]){ //right
-      move[0] = keyDown[2] ? -panAmt : 0;
-      keyDown[3] = false;
-    }
+  else if (kc == keyCodes[5]){
+    map.setZoom(map.getZoom() - 1);
+    //      zoom -= 1;
   }
+  //    map.panBy(0,-panAmt);
 
-  //debug
-  function displayCoordinates(pnt) {
-    var lat = pnt.lat();
-    lat = lat.toFixed(4);
-    var lng = pnt.lng();
-    lng = lng.toFixed(4);
-    console.log("Latitude: " + lat + "  Longitude: " + lng);
+  //    console.log("keydown, move",move);
+}
+
+function keyUpHandler(e){
+  //  e.preventDefault();
+  //  alert(e.keyCode);
+  var kc = e.keyCode;
+
+  if (kc == keyCodes[0]){ //up
+    move[1] = keyDown[1] ? panAmt : 0;
+    keyDown[0] = false;
   }
+  if (kc == keyCodes[1]){ //down
+    move[1] = keyDown[0] ? -panAmt : 0;
+    keyDown[1] = false;
+  }
+  if (kc == keyCodes[2]){ //left
+    move[0] = keyDown[3] ? panAmt : 0;
+    keyDown[2] = false;
+  }
+  if (kc == keyCodes[3]){ //right
+    move[0] = keyDown[2] ? -panAmt : 0;
+    keyDown[3] = false;
+  }
+}
+
+//debug
+function displayCoordinates(pnt) {
+  var lat = pnt.lat();
+  lat = lat.toFixed(4);
+  var lng = pnt.lng();
+  lng = lng.toFixed(4);
+  console.log("Latitude: " + lat + "  Longitude: " + lng);
+}
 
 
 function latLng2Point(latLng, map) {
