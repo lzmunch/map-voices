@@ -79,7 +79,7 @@ function initMap() {
         latLngBounds: BOUNDS,
         strictBounds: false,
       },
-      zoom: 8,
+      zoom: 17,
       disableDefaultUI: true,
       mapTypeId: 'hybrid'
     });
@@ -120,6 +120,7 @@ function initMap() {
       // map is ready
 //      setTimeout(function() {
         google.maps.event.addListener(map, 'bounds_changed', function() {
+          if (!started) return;
           var bounds =  map.getBounds();
           var ne = bounds.getNorthEast();
           var sw = bounds.getSouthWest();
@@ -205,7 +206,7 @@ function initSoundMarkers(){
     var h = new Howl({
       src: [PATH_TO_SOUNDS + s.filename],
       html5: true,
-      autoplay: true,
+      autoplay: false,
       loop: true,
       pool: 1,
       volume: masterVol,
@@ -233,7 +234,6 @@ function initSoundMarkers(){
 }
 
 function updateSounds(bounds){
-  //  console.log("update")
   //  if (!initial) return;
   //  console.log(MARKERS[0])
   var center = bounds.getCenter();
@@ -251,9 +251,9 @@ function updateSounds(bounds){
     var m = SOUND_MARKERS[i];
     var s = SOUND_HOWLS[i]
     if (m.inView && !s.playing()){
-      //      console.log("play")
-      var d = distFromCenter(center, m.position);
-      console.log("dist", d);
+//        console.log("play", s._src)
+//      var d = distFromCenter(center, m.position);
+//      console.log("dist", d);
       //      s.volume(d*masterVol);
       var id = s.play();
       if (m.unplayed){
